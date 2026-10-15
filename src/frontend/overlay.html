@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DotaBlitz In-Game Overlay</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    body {
+      background: rgba(10, 14, 20, 0.88);
+      backdrop-filter: blur(8px);
+      color: #f5f6fa;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
+      border: 1px solid #26334a;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #26334a;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+    }
+    .logo {
+      color: #00d4aa;
+      font-weight: 800;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #00d4aa;
+      box-shadow: 0 0 6px #00d4aa;
+    }
+    .card {
+      background: #182030;
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      border: 1px solid #26334a;
+    }
+    .title {
+      font-size: 10px;
+      text-transform: uppercase;
+      color: #a4b0be;
+      margin-bottom: 4px;
+      font-weight: 700;
+    }
+    .skill-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .skill-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      background: #00d4aa;
+      color: #0a0e14;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 16px;
+    }
+    .items-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .item-icon {
+      width: 44px;
+      height: 30px;
+      border-radius: 3px;
+      border: 1px solid #26334a;
+      object-fit: cover;
+    }
+    .time-badge {
+      color: #f1c40f;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo">
+      <i class="fa-solid fa-bolt-lightning"></i> DotaBlitz Overlay
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span class="time-badge" id="overlayClock">00:00</span>
+      <div class="status-dot" id="overlayDot"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="title">Next Skill to Level</div>
+    <div class="skill-box">
+      <div class="skill-badge" id="overlayNextSkill">Q</div>
+      <div>
+        <div style="font-weight: 600;" id="overlaySkillLabel">Level 1 Power Spike</div>
+        <div style="color: #a4b0be; font-size: 11px;" id="overlayHeroLevel">Hero Level 1</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="title">Next Target Items</div>
+    <div class="items-row" id="overlayItems">
+      <!-- Items dynamically populated -->
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom: 0;">
+    <div class="title">Next Power Spike</div>
+    <div style="color: #00d4aa; font-weight: 600;" id="overlaySpike">Level 6 – Ultimate unlocked</div>
+  </div>
+
+  <script>
+    const ws = new WebSocket(`ws://${window.location.host}/ws`);
+    const cdnItemBase = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/";
+
+    ws.onmessage = (event) => {
+      try {
+        const state = JSON.parse(event.data);
+        const mins = Math.floor(state.game_time / 60);
+        const secs = state.game_time % 60;
+        document.getElementById("overlayClock").textContent = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        document.getElementById("overlayHeroLevel").textContent = `Hero Level ${state.hero_level || 1}`;
+        
+        // Request next action calculation from backend API
+        fetch(`/api/gsi/next-action`)
+          .then(r => r.json())
+          .then(action => {
+            if (action.next_skill) {
+              document.getElementById("overlayNextSkill").textContent = action.next_skill;
+              document.getElementById("overlaySkillLabel").textContent = action.tip || "Recommended skill";
+            }
+            if (action.next_items && action.next_items.length > 0) {
+              const row = document.getElementById("overlayItems");
+              row.innerHTML = "";
+              action.next_items.slice(0, 4).forEach(item => {
+                const clean = String(item).replace(/^item_/, "").trim().toLowerCase();
+                const img = document.createElement("img");
+                img.className = "item-icon";
+                img.src = `${cdnItemBase}${clean}.png`;
+                img.alt = clean;
+                img.onerror = () => { img.src = `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/items/${clean}_lg.png`; };
+                row.appendChild(img);
+              });
+            }
+          }).catch(console.error);
+
+      } catch (e) {
+        console.error(e);
+      }
+    };
+  </script>
+</body>
+</html>

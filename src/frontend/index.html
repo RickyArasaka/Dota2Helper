@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DotaBlitz – Dota 2 Companion</title>
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="brand">
+      <i class="fa-solid fa-bolt-lightning brand-logo"></i>
+      <span class="brand-name">DotaBlitz</span>
+    </div>
+
+    <div class="topbar-actions">
+      <div class="status-pill" id="gsiStatus">
+        <span class="status-indicator disconnected" id="gsiIndicator"></span>
+        <span id="gsiText">Dota 2: Not Connected</span>
+      </div>
+
+      <button class="btn-icon" id="openOverlayBtn" title="Launch Transparent Overlay Window">
+        <i class="fa-solid fa-window-restore"></i>
+      </button>
+
+      <button class="btn-icon" id="syncBtn" title="Force Sync Data">
+        <i class="fa-solid fa-arrows-rotate"></i>
+      </button>
+
+      <button class="btn-icon" id="settingsBtn" title="Settings">
+        <i class="fa-solid fa-gear"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Grid App Container -->
+  <div class="app-container">
+    
+    <!-- Left Column: Hero Select -->
+    <aside class="sidebar">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="heroSearch" placeholder="Search hero..." autocomplete="off">
+      </div>
+      
+      <div class="hero-grid" id="heroGrid">
+        <!-- Dynamically injected heroes -->
+      </div>
+    </aside>
+
+    <!-- Center Column: Hero Builds & Skill Trees -->
+    <main class="main-content">
+      
+      <!-- Hero Header Banner -->
+      <div class="hero-header" id="heroHeader">
+        <img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/pudge.png" class="hero-portrait" id="currentHeroImg" alt="Hero">
+        <div class="hero-info">
+          <h1 id="currentHeroName">Select a Hero</h1>
+          <div class="hero-meta">
+            <span class="badge badge-str" id="currentHeroAttr">Strength</span>
+            <span id="currentHeroType">Melee</span>
+            <span id="currentHeroRoles">• Carry, Disabler</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls & Tabs -->
+      <div class="controls-bar">
+        <div class="build-tabs">
+          <button class="tab-btn active" data-tab="popular">Most Popular</button>
+          <button class="tab-btn" data-tab="winrate">Highest Winrate</button>
+          <button class="tab-btn" data-tab="meta">Meta (Immortal)</button>
+          <button class="tab-btn" data-tab="situational">Situational</button>
+        </div>
+
+        <select class="rank-select" id="rankFilter">
+          <option value="all">All Ranks</option>
+          <option value="divine_plus">Divine & Immortal</option>
+          <option value="immortal">Immortal Only</option>
+        </select>
+      </div>
+
+      <!-- Active Build Card -->
+      <section class="build-card" id="buildCard">
+        <div class="build-card-header">
+          <div class="build-stats">
+            <div class="stat-item">
+              <span class="stat-label">Winrate</span>
+              <span class="stat-value winrate" id="buildWinrate">--%</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Sample Size</span>
+              <span class="stat-value" id="buildMatches">-- matches</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Source</span>
+              <span class="stat-value" id="buildSource" style="text-transform: capitalize;">--</span>
+            </div>
+          </div>
+
+          <div class="build-actions">
+            <button class="btn-primary" id="installInGameBtn" style="background: linear-gradient(135deg, #00d4aa 0%, #0984e3 100%);" title="Aplica diretamente na loja do Dota 2">
+              <i class="fa-solid fa-bolt"></i> Aplicar no Dota 2
+            </button>
+            <button class="btn-secondary" id="exportGuideBtn">
+              <i class="fa-brands fa-steam"></i> Steam Guide
+            </button>
+          </div>
+        </div>
+
+        <!-- Facet Section if available -->
+        <div id="facetContainer" style="display: none;">
+          <span class="section-title"><i class="fa-solid fa-gem"></i> Recommended Facet</span>
+          <div id="facetText" style="font-size: 13px; color: var(--accent-gold); margin-top: 4px;"></div>
+        </div>
+
+        <!-- Matchups & Counters Section -->
+        <div class="matchups-section" id="matchupsSection">
+          <span class="section-title"><i class="fa-solid fa-chart-pie"></i> Matchups & Counters (Estatísticas de Alto Nível)</span>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 10px;">
+            <div style="background: var(--bg-secondary); padding: 12px; border-radius: var(--radius-md); border: 1px solid rgba(214, 48, 49, 0.3);">
+              <div style="font-size: 11px; font-weight: 700; color: #d63031; text-transform: uppercase; margin-bottom: 8px;">
+                <i class="fa-solid fa-skull"></i> Piores Confrontos (Counters)
+              </div>
+              <div class="item-row" id="badAgainstRow" style="min-height: 40px;"></div>
+            </div>
+            <div style="background: var(--bg-secondary); padding: 12px; border-radius: var(--radius-md); border: 1px solid rgba(0, 212, 170, 0.3);">
+              <div style="font-size: 11px; font-weight: 700; color: #00d4aa; text-transform: uppercase; margin-bottom: 8px;">
+                <i class="fa-solid fa-trophy"></i> Melhores Confrontos (Favoráveis)
+              </div>
+              <div class="item-row" id="goodAgainstRow" style="min-height: 40px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Skill Order Table -->
+        <div class="skill-section">
+          <span class="section-title"><i class="fa-solid fa-list-ol"></i> Skill Leveling Order (1-25)</span>
+          <div class="skill-grid-container">
+            <table class="skill-table" id="skillTable">
+              <!-- Dynamically populated skill grid -->
+            </table>
+          </div>
+        </div>
+
+        <!-- Item Builds by Game Phase -->
+        <div class="items-section">
+          <span class="section-title"><i class="fa-solid fa-shield-halved"></i> Recommended Item Progression</span>
+          
+          <div class="item-phase">
+            <span class="phase-name">Starting Items</span>
+            <div class="item-row" id="startingItems"></div>
+          </div>
+
+          <div class="item-phase">
+            <span class="phase-name">Early Game</span>
+            <div class="item-row" id="earlyItems"></div>
+          </div>
+
+          <div class="item-phase">
+            <span class="phase-name">Core Items</span>
+            <div class="item-row" id="coreItems"></div>
+          </div>
+
+          <div class="item-phase">
+            <span class="phase-name">Late Game & Luxury</span>
+            <div class="item-row" id="lateItems"></div>
+          </div>
+
+          <div class="item-phase">
+            <span class="phase-name">Situational Items</span>
+            <div class="item-row" id="situationalItems"></div>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Right Column: Live In-Game Assistant -->
+    <aside class="assistant-panel">
+      
+      <!-- Live Game Match Status Card -->
+      <div class="assistant-card highlight">
+        <div class="in-game-badge">
+          <i class="fa-solid fa-circle-dot"></i> Live Game State (GSI)
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-top: 4px;">
+          <span>Game Time: <strong id="assistantGameTime">--:--</strong></span>
+          <span>Gold: <strong id="assistantGold" style="color: var(--accent-gold);">0</strong></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+          <span>Hero Level: <strong id="assistantLevel">--</strong></span>
+          <span>K/D/A: <strong id="assistantKDA">0/0/0</strong></span>
+          <span>CS: <strong id="assistantCS">0/0</strong></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding: 6px 10px; background: rgba(0,0,0,0.3); border-radius: 4px; border: 1px solid var(--border-color);">
+          <span style="font-size: 11px;">CS Efficiency: <strong id="assistantCSMin" style="color: var(--accent-primary);">0.0 CS/min</strong></span>
+          <span class="badge" id="assistantCSRating" style="background: rgba(0, 212, 170, 0.2); color: #00d4aa; font-weight: 800;">Rating S</span>
+        </div>
+      </div>
+
+      <!-- Live Tactical Objective Timers -->
+      <div class="assistant-card">
+        <span class="section-title"><i class="fa-solid fa-stopwatch"></i> Próximos Objetivos</span>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px; font-size: 12px;">
+          <div style="display: flex; justify-content: space-between;">
+            <span><i class="fa-solid fa-water" style="color: #00cec9; width: 16px;"></i> Power Rune:</span>
+            <strong id="timerPowerRune" style="color: #00cec9;">--:--</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span><i class="fa-solid fa-book-sparkles" style="color: #a29bfe; width: 16px;"></i> Wisdom Rune:</span>
+            <strong id="timerWisdomRune" style="color: #a29bfe;">--:--</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span><i class="fa-solid fa-spa" style="color: #fdcb6e; width: 16px;"></i> Lotus Pool:</span>
+            <strong id="timerLotus" style="color: #fdcb6e;">--:--</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span><i class="fa-solid fa-shield-halved" style="color: #e17055; width: 16px;"></i> Tormentor:</span>
+            <strong id="timerTormentor" style="color: #e17055;">--:--</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span><i class="fa-solid fa-dice-d20" style="color: var(--accent-gold); width: 16px;"></i> Neutral Item:</span>
+            <strong id="timerNeutral" style="color: var(--accent-gold);">Tier 1 em --:--</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Next Skill to Level -->
+      <div class="assistant-card">
+        <span class="section-title"><i class="fa-solid fa-wand-magic-sparkles"></i> Next Skill to Level</span>
+        <div class="next-action-item">
+          <div class="skill-badge-large" id="assistantNextSkill">?</div>
+          <div class="action-details">
+            <span class="title" id="assistantSkillTitle">Follow build order</span>
+            <span class="subtitle" id="assistantSkillSub">Waiting for level up</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Next Items to Buy -->
+      <div class="assistant-card">
+        <span class="section-title"><i class="fa-solid fa-coins"></i> Next Items to Buy</span>
+        <div class="item-row" id="assistantNextItems" style="margin-top: 8px;">
+          <span style="font-size: 12px; color: var(--text-muted);">Syncing build items...</span>
+        </div>
+      </div>
+
+      <!-- Power Spikes & Timings -->
+      <div class="assistant-card">
+        <span class="section-title"><i class="fa-solid fa-bullseye"></i> Power Spike Timings</span>
+        <ul id="powerSpikeList" style="list-style: none; font-size: 12px; display: flex; flex-direction: column; gap: 8px; color: var(--text-secondary);">
+          <li>• <strong>Level 6:</strong> Ultimate unlocked — high kill threat</li>
+          <li>• <strong>15-18m:</strong> Core item completion spike</li>
+          <li>• <strong>Level 15:</strong> Second talent tier spike</li>
+          <li>• <strong>Level 20/25:</strong> Game-changing late talents</li>
+        </ul>
+      </div>
+
+    </aside>
+
+  </div>
+
+  <!-- Bottombar Status -->
+  <footer class="bottombar">
+    <div id="statusPatch">Dota 2 Patch: 7.37</div>
+    <div id="statusSync">Cache: Ready</div>
+  </footer>
+
+  <!-- Modal: Steam Guide Export -->
+  <div class="modal-overlay" id="guideModal">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h2 style="font-size: 16px;"><i class="fa-brands fa-steam"></i> Steam Community Guide Generator</h2>
+        <button class="btn-icon" id="closeGuideModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom: 12px; color: var(--text-secondary);">
+          Copy and paste this formatted text into the Steam Guide Editor, or save it to your local Dota 2 guide files:
+        </p>
+        <textarea class="guide-textarea" id="guideTextContent" readonly></textarea>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px;">
+          <button class="btn-secondary" id="downloadGuideBtn"><i class="fa-solid fa-download"></i> Download .txt</button>
+          <button class="btn-primary" id="copyGuideBtn"><i class="fa-solid fa-copy"></i> Copy to Clipboard</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- App Script -->
+  <script src="js/app.js"></script>
+</body>
+</html>
